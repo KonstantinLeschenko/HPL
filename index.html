@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Просчёт панели MACKO</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --border: #dde1e6;
+    --text: #1f2430;
+    --muted: #6b7280;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --error-bg: #fdecec;
+    --error-text: #b3261e;
+    --ok-bg: #eafaf0;
+    --ok-text: #146c2e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 480px) 1fr;
+    gap: 20px;
+    max-width: 960px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .field { margin-bottom: 14px; }
+  label {
+    display: block;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  select, input[type="text"] {
+    width: 100%;
+    padding: 7px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    background: #fff;
+    color: var(--text);
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 14.5px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  button:hover { background: var(--accent-hover); }
+  button:disabled { background: #9ca3af; cursor: default; }
+  .result-price {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 4px 0 12px;
+  }
+  .result-link a { color: var(--accent); word-break: break-all; }
+  .result-code { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+  .messages { margin-top: 12px; font-size: 13px; color: #8a6d1a; }
+  .messages div { background: #fff8e6; border-radius: 6px; padding: 6px 8px; margin-bottom: 4px; }
+  .error-box {
+    background: var(--error-bg);
+    color: var(--error-text);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 13.5px;
+  }
+  .ok-box { background: var(--ok-box, var(--ok-bg)); }
+  .preview {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .preview.show { display: flex; }
+  .preview img {
+    max-width: 72px;
+    max-height: 72px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: #fff;
+    object-fit: contain;
+    padding: 2px;
+  }
+  /* SVG модели/формы нарисованы белым по прозрачному (под тёмную подложку
+     на самом сайте MACKO) - на белом фоне их не видно, поэтому тут фон тёмный */
+  .preview.preview-dark img {
+    background: #2b2f3a;
+  }
+  .preview .swatch {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    flex: none;
+  }
+  .preview .preview-title {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .placeholder { color: var(--muted); font-size: 13.5px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<h1>Просчёт панели MACKO</h1>
+<div class="subtitle">
+  Параметр не выбран → API подставит стандартное значение сайта.
+  Сервис-обёртка: <code>mackodoor_service.py</code> над <code>app.macko.com.ua/api1</code>.
+</div>
+
+<div class="layout">
+  <div class="card">
+    <div class="row2">
+      <div class="field">
+        <label for="model">Модель</label>
+        <select id="model"></select>
+        <div class="preview preview-dark" id="preview_model"></div>
+      </div>
+      <div class="field">
+        <label for="shape">Форма</label>
+        <select id="shape"></select>
+        <div class="preview preview-dark" id="preview_shape"></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>
+        <input type="checkbox" id="hplOnly" checked style="width:auto; margin-right:6px;">
+        Показывать только HPL-цвета в списках ниже
+      </label>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="colour_outside">Цвет панели снаружи</label>
+        <select id="colour_outside"></select>
+        <div class="preview" id="preview_colour_outside"></div>
+      </div>
+      <div class="field">
+        <label for="colour_inside">Цвет панели изнутри</label>
+        <select id="colour_inside"></select>
+        <div class="preview" id="preview_colour_inside"></div>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="glass">Стекло</label>
+        <select id="glass"></select>
+      </div>
+      <div class="field">
+        <label for="furniture">Ручка (фурнитура)</label>
+        <select id="furniture"></select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="options">Конструкция / товщина</label>
+      <select id="options"></select>
+      <div class="preview" id="preview_options"></div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="inox">Inox / декор</label>
+        <select id="inox"></select>
+      </div>
+      <div class="field">
+        <label for="view">Открывание</label>
+        <select id="view"></select>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="mirrored">Стандартная / зеркальная</label>
+        <select id="mirrored"></select>
+      </div>
+      <div class="field">
+        <label for="safeglass">Безопасное стекло</label>
+        <select id="safeglass"></select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="currency">Валюта</label>
+      <select id="currency">
+        <option value="">По умолчанию (валюта сайта)</option>
+        <option value="UAH">UAH</option>
+        <option value="USD">USD</option>
+      </select>
+    </div>
+
+    <button id="calcBtn">Посчитать цену</button>
+  </div>
+
+  <div class="card" id="resultCard">
+    <div class="placeholder">Выберите параметры слева и нажмите «Посчитать цену».</div>
+  </div>
+</div>
+
+<script>
+const FIELDS = ["model", "shape", "colour_outside", "colour_inside", "glass",
+                "furniture", "options", "inox", "view", "mirrored", "safeglass"];
+
+const RESOURCE_OF = {
+  model: "models", shape: "shapes", colour_outside: "colors", colour_inside: "colors",
+  glass: "glass", furniture: "furniture", options: "construction",
+  inox: "inox", view: "view", mirrored: "mirrored", safeglass: "safeglass",
+};
+
+let colorsCache = [];
+
+// поля, для которых показываем картинку выбранного значения
+const PREVIEW_FIELDS = ["model", "shape", "colour_outside", "colour_inside", "options"];
+
+function fillSelect(selectEl, items, placeholder) {
+  selectEl.innerHTML = "";
+  const opt0 = document.createElement("option");
+  opt0.value = "";
+  opt0.textContent = placeholder;
+  selectEl.appendChild(opt0);
+  for (const it of items) {
+    const opt = document.createElement("option");
+    opt.value = it.id;
+    opt.textContent = `${it.title ?? ""} (id ${it.id})`;
+    if (it.image) opt.dataset.image = it.image;
+    if (it.colour) opt.dataset.colour = it.colour;
+    selectEl.appendChild(opt);
+  }
+}
+
+function updatePreview(fieldId) {
+  const preview = document.getElementById(`preview_${fieldId}`);
+  if (!preview) return;
+  const sel = document.getElementById(fieldId);
+  const opt = sel.options[sel.selectedIndex];
+  const image = opt ? opt.dataset.image : null;
+  const colour = opt ? opt.dataset.colour : null;
+
+  preview.innerHTML = "";
+  if (image) {
+    const img = document.createElement("img");
+    img.src = image;
+    img.alt = opt.textContent;
+    preview.appendChild(img);
+    preview.classList.add("show");
+  } else if (colour) {
+    const sw = document.createElement("div");
+    sw.className = "swatch";
+    sw.style.background = colour;
+    preview.appendChild(sw);
+    preview.classList.add("show");
+  } else {
+    preview.classList.remove("show");
+  }
+}
+
+function applyColorFilter() {
+  const hplOnly = document.getElementById("hplOnly").checked;
+  const items = hplOnly ? colorsCache.filter(c => String(c.is_hpl) === "1") : colorsCache;
+  const label = hplOnly ? "-- по умолчанию сайта (только HPL показаны) --" : "-- по умолчанию сайта --";
+  for (const id of ["colour_outside", "colour_inside"]) {
+    const sel = document.getElementById(id);
+    const prev = sel.value;
+    fillSelect(sel, items, label);
+    if (items.some(i => String(i.id) === prev)) sel.value = prev;
+    updatePreview(id);
+  }
+}
+
+async function loadAll() {
+  // Загружаем справочники ПОСЛЕДОВАТЕЛЬНО, а не все разом: сторонний API
+  // Mackodoor отдаёт 429 Too Many Requests при большом числе параллельных
+  // запросов от одного клиента.
+  const uniqueResources = [...new Set(Object.values(RESOURCE_OF))];
+  const fetched = {};
+  for (const res of uniqueResources) {
+    const r = await fetch(`/api/${res}`);
+    fetched[res] = await r.json();
+  }
+
+  colorsCache = fetched.colors || [];
+
+  for (const field of FIELDS) {
+    if (field === "colour_outside" || field === "colour_inside") continue;
+    const sel = document.getElementById(field);
+    fillSelect(sel, fetched[RESOURCE_OF[field]] || [], "-- по умолчанию сайта --");
+  }
+  applyColorFilter();
+
+  for (const field of PREVIEW_FIELDS) {
+    updatePreview(field);
+    document.getElementById(field).addEventListener("change", () => updatePreview(field));
+  }
+
+  document.getElementById("hplOnly").addEventListener("change", applyColorFilter);
+}
+
+function buildQuery() {
+  const params = new URLSearchParams();
+  for (const f of FIELDS) {
+    const v = document.getElementById(f).value;
+    if (v) params.set(f, v);
+  }
+  const currency = document.getElementById("currency").value;
+  if (currency) params.set("currency", currency);
+  return params.toString();
+}
+
+async function calculate() {
+  const btn = document.getElementById("calcBtn");
+  const resultCard = document.getElementById("resultCard");
+  btn.disabled = true;
+  btn.textContent = "Считаем...";
+  resultCard.innerHTML = '<div class="placeholder">Запрос к API...</div>';
+
+  try {
+    const query = buildQuery();
+    const resp = await fetch(`/price?${query}`);
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      resultCard.innerHTML = `<div class="error-box">Ошибка: ${escapeHtml(data.error || "неизвестная ошибка")}</div>`;
+      return;
+    }
+
+    let html = `<div class="result-price">${data.price} ${data.currency || ""}</div>`;
+    html += `<div class="result-link">Ссылка на КП: <a href="${data.link}" target="_blank" rel="noopener">${data.link}</a></div>`;
+    html += `<div class="result-code">Код конфигурации: ${data.code}</div>`;
+    if (data.messages && data.messages.length) {
+      html += '<div class="messages">' + data.messages.map(m => `<div>${escapeHtml(m)}</div>`).join("") + '</div>';
+    }
+    resultCard.innerHTML = html;
+  } catch (e) {
+    resultCard.innerHTML = `<div class="error-box">Не удалось связаться с сервисом: ${escapeHtml(String(e))}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Посчитать цену";
+  }
+}
+
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+document.getElementById("calcBtn").addEventListener("click", calculate);
+loadAll();
+</script>
+
+</body>
+</html>
